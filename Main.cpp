@@ -16,9 +16,12 @@
 #include "ModelLoader.h"
 
 
+//cubo de prueba
+#include "Cube.h"
+
 // RUTA DEL ESCENARIO
 // (.glb, o .gltf con su .bin y texturas en la misma carpeta)
-const char* SCENE_PATH = "Models/Environments/Maya/scene.gltf";
+const char* SCENE_PATH = "Models/Environments/Snow/scene.gltf";
 
 // Tamaño al que se escala el lado más largo del escenario, en unidades del mundo.
 const float SCENE_TARGET_SIZE = 10.0f;
@@ -209,6 +212,26 @@ int main()
     sceneModel = glm::scale(sceneModel, glm::vec3(SCENE_TARGET_SIZE / maxSide));
     sceneModel = glm::translate(sceneModel, glm::vec3(-center.x, -scene->boundsMin.y, -center.z));
 
+	// ---------------------------------------------------------------
+    // CREAR CUBO DE PRUEBA
+    std::unique_ptr<Cube> cube = std::make_unique<Cube>();
+
+    // Transformación del cubo
+    glm::mat4 cubeModel = glm::mat4(1.0f);
+
+    // Posición inicial: cerca del centro del escenario
+    cubeModel = glm::translate(
+        cubeModel,
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+
+    // Tamaño del cubo
+    cubeModel = glm::scale(
+        cubeModel,
+        glm::vec3(0.7f)
+    );
+
+
 
     // ---------------------------------------------------------------
     // CONFIGURACIÓN DE LA LUZ PARA LAS SOMBRAS
@@ -291,6 +314,20 @@ int main()
             sceneModel
         );
 
+        // Dibujar el cubo en el mapa de profundidad
+        glm::mat4 cubeLightMVP = lightSpaceMatrix * cubeModel;
+
+        glUniformMatrix4fv(
+            glGetUniformLocation(shadowShader.ID, "uLightMVP"),
+            1,
+            GL_FALSE,
+            glm::value_ptr(cubeLightMVP)
+        );
+
+        cube->Draw();
+
+
+
         // Volver al framebuffer principal
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -348,6 +385,47 @@ int main()
             viewProjection,
             sceneModel
         );
+        // ---------------------------------------------------------------
+        // DIBUJAR CUBO DE PRUEBA
+        // ---------------------------------------------------------------
+
+        glm::mat4 cubeMVP = viewProjection * cubeModel;
+
+        // Enviar matrices al shader
+        glUniformMatrix4fv(
+            uMVP,
+            1,
+            GL_FALSE,
+            glm::value_ptr(cubeMVP)
+        );
+
+        glUniformMatrix4fv(
+            uModel,
+            1,
+            GL_FALSE,
+            glm::value_ptr(cubeModel)
+        );
+
+        // Color azul para distinguir el cubo
+        glUniform4f(
+            glGetUniformLocation(modelShader.ID, "uBaseColor"),
+            0.15f, 0.35f, 0.85f, 1.0f
+        );
+
+        // Indicar que el cubo no utiliza textura
+        glUniform1i(
+            glGetUniformLocation(modelShader.ID, "uHasTexture"),
+            0
+        );
+
+        // Desactivar recorte por transparencia
+        glUniform1f(
+            glGetUniformLocation(modelShader.ID, "uAlphaCutoff"),
+            0.0f
+        );
+
+        // Dibujar cubo
+        cube->Draw();
 
 
         // TERMINAR FRAME
@@ -358,10 +436,17 @@ int main()
 
 
     // LIBERAR RECURSOS (siempre ANTES de destruir la ventana y terminar GLFW)
+    
+    
+    // LIBERAR RECURSOS cubo
 
+    cube.reset();
+ 
     scene.reset(); // destruye las mallas con el contexto aún vivo
 
     modelShader.Delete();
+	shadowShader.Delete();// destruir shaders
+
 
 	glDeleteFramebuffers(1, &depthFBO); // destruir el framebuffer de sombras
 	glDeleteTextures(1, &depthMap); // destruir la textura de profundidad
