@@ -31,15 +31,18 @@ void main()
     // Dirección de la luz
     vec3 lightDir = normalize(vec3(0.4, 1.0, 0.3));
 
-    // Iluminación ambiental fría
-    vec3 ambientColor = vec3(0.43, 0.49, 0.60);
+    // Iluminación ambiental moderada
+    vec3 ambientColor = vec3(0.34, 0.36, 0.40);
     vec3 ambient = base.rgb * ambientColor;
 
-    // Iluminación difusa
+    // Iluminación direccional
     float diffuseFactor = max(dot(normal, lightDir), 0.0);
 
-    vec3 lightColor = vec3(0.94, 0.97, 1.0);
-    vec3 diffuse = base.rgb * lightColor * diffuseFactor * 0.65;
+    // Diferenciar superficies iluminadas y sombreadas
+    diffuseFactor = pow(diffuseFactor, 1.25);
+
+    vec3 lightColor = vec3(1.0, 0.98, 0.95);
+    vec3 diffuse = base.rgb * lightColor * diffuseFactor * 0.78;
 
     // Resultado final
     vec3 finalColor = ambient + diffuse;
