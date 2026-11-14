@@ -18,7 +18,7 @@
 
 // RUTA DEL ESCENARIO
 // (.glb, o .gltf con su .bin y texturas en la misma carpeta)
-const char* SCENE_PATH = "Models/Environments/Snow/scene.gltf";
+const char* SCENE_PATH = "Models/Environments/Maya/scene.gltf";
 
 // Tamaño al que se escala el lado más largo del escenario, en unidades del mundo.
 const float SCENE_TARGET_SIZE = 10.0f;
@@ -101,6 +101,76 @@ int main()
     glDepthFunc(GL_LESS);
 
 
+    // ---------------------------------------------------------------
+    // CONFIGURACIÓN DEL MAPA DE SOMBRAS
+    // ---------------------------------------------------------------
+
+    const unsigned int SHADOW_WIDTH = 2048;
+    const unsigned int SHADOW_HEIGHT = 2048;
+
+    // Framebuffer para almacenar las profundidades
+    GLuint depthFBO;
+    glGenFramebuffers(1, &depthFBO);
+
+    // Textura de profundidad
+    GLuint depthMap;
+    glGenTextures(1, &depthMap);
+
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_DEPTH_COMPONENT,
+        SHADOW_WIDTH,
+        SHADOW_HEIGHT,
+        0,
+        GL_DEPTH_COMPONENT,
+        GL_FLOAT,
+        nullptr
+    );
+
+    // Configuración de la textura
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    glTexParameterfv(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_BORDER_COLOR,
+        borderColor
+    );
+
+    // Asociar la textura al framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
+
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        GL_TEXTURE_2D,
+        depthMap,
+        0
+    );
+
+    // No necesitamos almacenar colores
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    // Comprobar que el framebuffer esté completo
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "Error: Framebuffer de sombras incompleto." << std::endl;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+
+
     // CREAR EL ESCENARIO
     // unique_ptr para poder destruirlo ANTES de glfwTerminate(): las mallas
     // llaman a glDelete* en su destructor y eso solo es válido mientras el
@@ -112,6 +182,7 @@ int main()
     // SHADER
 
     Shader modelShader("model.vert", "model.frag");
+    Shader shadowShader("shadow.vert", "shadow.frag");
 
     GLint uMVP = glGetUniformLocation(modelShader.ID, "uMVP");
     GLint uModel = glGetUniformLocation(modelShader.ID, "uModel");
@@ -139,7 +210,44 @@ int main()
     sceneModel = glm::translate(sceneModel, glm::vec3(-center.x, -scene->boundsMin.y, -center.z));
 
 
-    // RENDER LOOP
+    // ---------------------------------------------------------------
+    // CONFIGURACIÓN DE LA LUZ PARA LAS SOMBRAS
+    // ---------------------------------------------------------------
+
+    // Centro del escenario en coordenadas locales
+    glm::vec3 worldCenter =
+        glm::vec3(sceneModel * glm::vec4(center, 1.0f));
+
+    // Dirección de la luz
+    glm::vec3 lightDirection =
+        glm::normalize(glm::vec3(0.4f, 1.0f, 0.3f));
+
+    // Posición de la luz
+    glm::vec3 lightPosition =
+        worldCenter + lightDirection * 15.0f;
+
+    // Vista desde la luz
+    glm::mat4 lightView =
+        glm::lookAt(
+            lightPosition,
+            worldCenter,
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        );
+
+    // Proyección ortográfica de la luz
+    glm::mat4 lightProjection =
+        glm::ortho(
+            -8.0f, 8.0f,
+            -8.0f, 8.0f,
+            0.1f, 40.0f
+        );
+
+    // Matriz final de iluminación
+    glm::mat4 lightSpaceMatrix =
+        lightProjection * lightView;
+
+
+    //-------------// RENDER LOOP //----------------------------------------
 
     while (!glfwWindowShouldClose(window))
     {
@@ -161,6 +269,35 @@ int main()
         }
 
 
+        // ---------------------------------------------------------------
+        // PRIMERA PASADA: GENERAR EL MAPA DE PROFUNDIDA// ---------------------------------------------------------------
+         // Utilizar la resolución del mapa de sombras
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+
+        // Activar el framebuffer de profundidad
+        glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
+
+        // Limpiar el buffer de profundidad
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        // Activar el shader de sombras
+        shadowShader.Activate();
+
+        // Dibujar el escenario desde la perspectiva de la luz
+        scene->DrawDepth(
+            shadowShader.ID,
+            gltfModel,
+            lightSpaceMatrix,
+            sceneModel
+        );
+
+        // Volver al framebuffer principal
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Restaurar la resolución de la ventana
+        glViewport(0, 0, 800, 800);
+
+
         // LIMPIAR PANTALLA
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -175,12 +312,33 @@ int main()
 
         // DIBUJAR EL ESCENARIO
 
-        modelShader.Activate();
+		modelShader.Activate(); // activar el shader del modelo
 
-        glm::mat4 mvp = projection * view * sceneModel;
 
-        glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp));
-        glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(sceneModel));
+        // Enviar matriz de iluminación
+        glUniformMatrix4fv(
+            glGetUniformLocation(modelShader.ID, "uLightSpaceMatrix"),
+            1,
+            GL_FALSE,
+            glm::value_ptr(lightSpaceMatrix)
+        );
+
+        // Enviar mapa de sombras a la unidad de textura 1
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+
+        glUniform1i(
+            glGetUniformLocation(modelShader.ID, "uShadowMap"),
+            1
+        );
+
+
+
+
+		glm::mat4 mvp = projection * view * sceneModel; // Matriz final de transformación (MVP)
+
+		glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); // Enviar la matriz MVP al shader
+		glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(sceneModel)); // Enviar la matriz de modelo al shader
 
         glm::mat4 viewProjection = projection * view;
 
@@ -204,6 +362,9 @@ int main()
     scene.reset(); // destruye las mallas con el contexto aún vivo
 
     modelShader.Delete();
+
+	glDeleteFramebuffers(1, &depthFBO); // destruir el framebuffer de sombras
+	glDeleteTextures(1, &depthMap); // destruir la textura de profundidad
 
     glfwDestroyWindow(window);
 
