@@ -1,3 +1,4 @@
+
 #version 330 core
 
 out vec4 FragColor;
@@ -5,7 +6,6 @@ out vec4 FragColor;
 in vec3 vNormal;
 in vec2 vTex;
 
-// Material (los envía Model::Draw)
 uniform sampler2D uTex;
 uniform vec4 uBaseColor;
 uniform int uHasTexture;
@@ -13,26 +13,36 @@ uniform float uAlphaCutoff;
 
 void main()
 {
-    // Color del material, multiplicado por la textura si la tiene
+    // Color original del material
     vec4 base = uBaseColor;
 
     if (uHasTexture != 0)
         base *= texture(uTex, vTex);
 
-    // Descarta fragmentos transparentes (alphaMode MASK / BLEND)
     if (base.a < uAlphaCutoff)
         discard;
 
-    // Normal; si se ve la cara trasera del triángulo, se invierte
-    vec3 n = normalize(vNormal);
+    // Normal de la superficie
+    vec3 normal = normalize(vNormal);
+
     if (!gl_FrontFacing)
-        n = -n;
+        normal = -normal;
 
-    // Luz direccional fija en el mundo
-    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.7));
+    // Dirección de la luz
+    vec3 lightDir = normalize(vec3(0.4, 1.0, 0.3));
 
-    float ambient = 0.5;
-    float diffuse = max(dot(n, lightDir), 0.0) * 0.5;
+    // Iluminación ambiental fría
+    vec3 ambientColor = vec3(0.43, 0.49, 0.60);
+    vec3 ambient = base.rgb * ambientColor;
 
-    FragColor = vec4(base.rgb * (ambient + diffuse), 1.0);
+    // Iluminación difusa
+    float diffuseFactor = max(dot(normal, lightDir), 0.0);
+
+    vec3 lightColor = vec3(0.94, 0.97, 1.0);
+    vec3 diffuse = base.rgb * lightColor * diffuseFactor * 0.65;
+
+    // Resultado final
+    vec3 finalColor = ambient + diffuse;
+
+    FragColor = vec4(finalColor, base.a);
 }
