@@ -1,4 +1,3 @@
-
 #version 330 core
 
 out vec4 FragColor;
@@ -6,6 +5,7 @@ out vec4 FragColor;
 in vec3 vNormal;
 in vec2 vTex;
 in vec4 vPosLightSpace;
+in vec3 vFragPos;
 
 uniform sampler2D uTex;
 uniform sampler2D uShadowMap;
@@ -13,6 +13,10 @@ uniform sampler2D uShadowMap;
 uniform vec4 uBaseColor;
 uniform int uHasTexture;
 uniform float uAlphaCutoff;
+
+// Nuevos uniformes para Phong
+uniform vec3 uViewPos;
+uniform float uShininess;
 
 // ---------------------------------------------------------------
 // CALCULAR SOMBRAS
@@ -67,7 +71,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 }
 
 // ---------------------------------------------------------------
-// ILUMINACIÓN PRINCIPAL
+// ILUMINACIÓN PHONG
 // ---------------------------------------------------------------
 
 void main()
@@ -88,13 +92,23 @@ void main()
         normal = -normal;
 
     // Dirección de la luz
-    vec3 lightDir = normalize(vec3(0.4, 1.0, 0.3));
+    vec3 lightDir = normalize(vec3(1.4, 1.0, 0.3));
 
-    // Iluminación ambiental moderada
+    // Dirección desde el fragmento hacia la cámara
+    vec3 viewDir = normalize(uViewPos - vFragPos);
+
+    // -----------------------------------------------------------
+    // 1. COMPONENTE AMBIENTAL
+    // -----------------------------------------------------------
+
     vec3 ambientColor = vec3(0.34, 0.36, 0.40);
+
     vec3 ambient = base.rgb * ambientColor;
 
-    // Iluminación direccional
+    // -----------------------------------------------------------
+    // 2. COMPONENTE DIFUSA
+    // -----------------------------------------------------------
+
     float diffuseFactor = max(dot(normal, lightDir), 0.0);
 
     vec3 lightColor = vec3(1.0, 0.98, 0.95);
@@ -102,16 +116,38 @@ void main()
     vec3 diffuse =
         base.rgb * lightColor * diffuseFactor * 0.78;
 
-    // Calcular sombras
+    // -----------------------------------------------------------
+    // 3. COMPONENTE ESPECULAR
+    // -----------------------------------------------------------
+
+    // Dirección de reflexión de la luz
+    vec3 reflectDir = reflect(-lightDir, normal);
+
+    // Intensidad del reflejo
+    float specularFactor = pow(
+        max(dot(viewDir, reflectDir), 0.0),
+        uShininess
+    );
+
+    vec3 specular =
+        lightColor * specularFactor * 0.35;
+
+    // -----------------------------------------------------------
+    // SOMBRAS
+    // -----------------------------------------------------------
+
     float shadow = ShadowCalculation(
         vPosLightSpace,
         normal,
         lightDir
     );
 
-    // Aplicar sombras principalmente a la luz directa
+    // Las sombras afectan a la luz directa,
+    // tanto difusa como especular.
+    vec3 directLight = diffuse + specular;
+
     vec3 finalColor =
-        ambient + diffuse * (1.0 - shadow * 0.75);
+        ambient + directLight * (1.0 - shadow * 0.75);
 
     FragColor = vec4(finalColor, base.a);
 }

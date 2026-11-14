@@ -19,6 +19,9 @@
 //cubo de prueba
 #include "Cube.h"
 
+//esfera de prueba
+#include "Sphere.h"
+
 // ---------------------------------------------------------------
 //RUTAS 
 // ---------------------------------------------------------------
@@ -215,9 +218,13 @@ int main()
     Shader modelShader("model.vert", "model.frag");
     Shader shadowShader("shadow.vert", "shadow.frag");
 
+	// VARIABLES DE UNIFORMES
     GLint uMVP = glGetUniformLocation(modelShader.ID, "uMVP");
     GLint uModel = glGetUniformLocation(modelShader.ID, "uModel");
 
+    // Uniformes para iluminación Phong
+    GLint uViewPos = glGetUniformLocation(modelShader.ID, "uViewPos");
+    GLint uShininess = glGetUniformLocation(modelShader.ID, "uShininess");
 
     // CÁMARA
     // Empieza dentro del escenario, a la altura de los ojos. Ajusta la posición
@@ -268,7 +275,7 @@ int main()
     castleModel = glm::translate(
         castleModel,
 		//Las coordenadas del castillo se ajustan para que esté centrado en el eje X y Z, y apoyado en el piso (y=0)
-        glm::vec3(-2.0f, 0.75f, -2.0f)
+        glm::vec3(-1.0f, 0.75f, -2.0f)
     );
 
     // Escala del castillo
@@ -305,6 +312,27 @@ int main()
         glm::vec3(0.7f)
     );
 
+    // ---------------------------------------------------------------
+    // CREAR ESFERA DE PRUEBA PARA ILUMINACION PHONG
+    // ---------------------------------------------------------------
+
+    std::unique_ptr<Sphere> sphere =
+        std::make_unique<Sphere>();
+
+    glm::mat4 sphereModel(1.0f);
+
+    // Posicion de la esfera
+    sphereModel = glm::translate(
+        sphereModel,
+        glm::vec3(-3.0f, 0.8f, 0.0f)
+    );
+
+    // Tamaño de la esfera
+    sphereModel = glm::scale(
+        sphereModel,
+        glm::vec3(0.8f)
+    );
+
 
 
     // ---------------------------------------------------------------
@@ -317,7 +345,7 @@ int main()
 
     // Dirección de la luz
     glm::vec3 lightDirection =
-        glm::normalize(glm::vec3(0.4f, 1.0f, 0.3f));
+        glm::normalize(glm::vec3(1.4f, 1.0f, 0.3f));
 
     // Posición de la luz
     glm::vec3 lightPosition =
@@ -369,8 +397,10 @@ int main()
         // ---------------------------------------------------------------
         // PRIMERA PASADA: GENERAR EL MAPA DE PROFUNDIDA
         // // ---------------------------------------------------------------
-         // Utilizar la resolución del mapa de sombras
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+         
+        
+        // Utilizar la resolución del mapa de sombras
+         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 
         // Activar el framebuffer de profundidad
         glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
@@ -409,7 +439,20 @@ int main()
 
         cube->Draw();
 
+        // Dibujar esfera en el mapa de profundidad
+        glm::mat4 sphereLightMVP =
+            lightSpaceMatrix * sphereModel;
 
+        glUniformMatrix4fv(
+            glGetUniformLocation(shadowShader.ID, "uLightMVP"),
+            1,
+            GL_FALSE,
+            glm::value_ptr(sphereLightMVP)
+        );
+
+        sphere->Draw();
+
+		//SEGUNDA PASADA: DIBUJAR ESCENA CON SOMBRAS
 
         // Volver al framebuffer principal
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -433,6 +476,16 @@ int main()
         // DIBUJAR EL ESCENARIO
 
 		modelShader.Activate(); // activar el shader del modelo
+
+        // Posición actual de la cámara
+        glUniform3fv(
+            uViewPos,
+            1,
+            glm::value_ptr(camera.Position)
+        );
+
+        // Concentración del reflejo especular
+        glUniform1f(uShininess, 32.0f);
 
 
         // Enviar matriz de iluminación
@@ -520,6 +573,49 @@ int main()
         // Dibujar cubo
         cube->Draw();
 
+        // ---------------------------------------------------------------
+        // DIBUJAR ESFERA DE PRUEBA PHONG
+        // ---------------------------------------------------------------
+
+        glm::mat4 sphereMVP =
+            viewProjection * sphereModel;
+
+        // Enviar matrices al shader
+        glUniformMatrix4fv(
+            uMVP,
+            1,
+            GL_FALSE,
+            glm::value_ptr(sphereMVP)
+        );
+
+        glUniformMatrix4fv(
+            uModel,
+            1,
+            GL_FALSE,
+            glm::value_ptr(sphereModel)
+        );
+
+        // Color gris claro para observar los reflejos
+        glUniform4f(
+            glGetUniformLocation(modelShader.ID, "uBaseColor"),
+            0.75f, 0.78f, 0.82f, 1.0f
+        );
+
+        // La esfera no utiliza textura
+        glUniform1i(
+            glGetUniformLocation(modelShader.ID, "uHasTexture"),
+            0
+        );
+
+        // Desactivar recorte por transparencia
+        glUniform1f(
+            glGetUniformLocation(modelShader.ID, "uAlphaCutoff"),
+            0.0f
+        );
+
+        // Dibujar esfera
+        sphere->Draw();
+
 
         // TERMINAR FRAME
 
@@ -531,7 +627,8 @@ int main()
     // LIBERAR RECURSOS (siempre ANTES de destruir la ventana y terminar GLFW)
     
     
-    // LIBERAR RECURSOS cubo
+    // LIBERAR RECURSOS 
+	sphere.reset(); // destruye la esfera con el contexto aún vivo
 
 	castle.reset(); // destruye el castillo con el contexto aún vivo
 
