@@ -19,9 +19,22 @@
 //cubo de prueba
 #include "Cube.h"
 
+// ---------------------------------------------------------------
+//RUTAS 
+// ---------------------------------------------------------------
+
 // RUTA DEL ESCENARIO
 // (.glb, o .gltf con su .bin y texturas en la misma carpeta)
 const char* SCENE_PATH = "Models/Environments/Snow/scene.gltf";
+
+// RUTA DEL CASTILLO
+const char* CASTLE_PATH =
+"Models/Castle/scene.gltf";
+
+// Tamaño deseado del castillo
+const float CASTLE_TARGET_SIZE = 4.0f;
+
+
 
 // Tamaño al que se escala el lado más largo del escenario, en unidades del mundo.
 const float SCENE_TARGET_SIZE = 10.0f;
@@ -34,6 +47,17 @@ int main()
 
 	if (!LoadGLTF(SCENE_PATH, gltfModel)) // si no se pudo cargar el archivo, termina el programa
     {
+        return -1;
+    }
+
+    // CARGAR EL ARCHIVO glTF DEL CASTILLO
+    tinygltf::Model castleGLTF;
+
+    if (!LoadGLTF(CASTLE_PATH, castleGLTF))
+    {
+        std::cout << "No se pudo cargar el castillo."
+            << std::endl;
+
         return -1;
     }
 
@@ -181,6 +205,10 @@ int main()
    
     std::unique_ptr<Model> scene = std::make_unique<Model>(gltfModel);
 
+    // CREAR EL CASTILLO
+    std::unique_ptr<Model> castle =
+        std::make_unique<Model>(castleGLTF);
+
 
     // SHADER
 
@@ -212,20 +240,66 @@ int main()
     sceneModel = glm::scale(sceneModel, glm::vec3(SCENE_TARGET_SIZE / maxSide));
     sceneModel = glm::translate(sceneModel, glm::vec3(-center.x, -scene->boundsMin.y, -center.z));
 
+	
+    
+    // ---------------------------------------------------------------
+    // TRANSFORMACIÓN DEL CASTILLO
+    // ---------------------------------------------------------------
+
+    // Obtener dimensiones del castillo
+    glm::vec3 castleSize =
+        castle->boundsMax - castle->boundsMin;
+
+    // Centro del castillo
+    glm::vec3 castleCenter =
+        (castle->boundsMin + castle->boundsMax) * 0.5f;
+
+    // Lado más largo
+    float castleMaxSide =
+        std::max(
+            castleSize.x,
+            std::max(castleSize.y, castleSize.z)
+        );
+
+    // Crear matriz de transformación
+    glm::mat4 castleModel(1.0f);
+
+    // Posición que anteriormente ocupaba el cubo
+    castleModel = glm::translate(
+        castleModel,
+		//Las coordenadas del castillo se ajustan para que esté centrado en el eje X y Z, y apoyado en el piso (y=0)
+        glm::vec3(-2.0f, 0.75f, -2.0f)
+    );
+
+    // Escala del castillo
+    castleModel = glm::scale(
+        castleModel,
+        glm::vec3(CASTLE_TARGET_SIZE / castleMaxSide)
+    );
+
+    // Centrar el modelo y apoyar su base
+    castleModel = glm::translate(
+        castleModel,
+        glm::vec3(
+            -castleCenter.x,
+            -castle->boundsMin.y,
+            -castleCenter.z
+        )
+    );
+
+
 	// ---------------------------------------------------------------
     // CREAR CUBO DE PRUEBA
     std::unique_ptr<Cube> cube = std::make_unique<Cube>();
 
-    // Transformación del cubo
-    glm::mat4 cubeModel = glm::mat4(1.0f);
+    glm::mat4 cubeModel(1.0f);
 
-    // Posición inicial: cerca del centro del escenario
+    // Posición que anteriormente ocupaba el castillo
     cubeModel = glm::translate(
         cubeModel,
-        glm::vec3(0.0f, 1.0f, 0.0f)
+        glm::vec3(2.0f, 0.0f, 0.0f)
     );
 
-    // Tamaño del cubo
     cubeModel = glm::scale(
         cubeModel,
         glm::vec3(0.7f)
@@ -293,7 +367,8 @@ int main()
 
 
         // ---------------------------------------------------------------
-        // PRIMERA PASADA: GENERAR EL MAPA DE PROFUNDIDA// ---------------------------------------------------------------
+        // PRIMERA PASADA: GENERAR EL MAPA DE PROFUNDIDA
+        // // ---------------------------------------------------------------
          // Utilizar la resolución del mapa de sombras
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 
@@ -312,6 +387,14 @@ int main()
             gltfModel,
             lightSpaceMatrix,
             sceneModel
+        );
+
+        // Generar sombras del castillo
+        castle->DrawDepth(
+            shadowShader.ID,
+            castleGLTF,
+            lightSpaceMatrix,
+            castleModel
         );
 
         // Dibujar el cubo en el mapa de profundidad
@@ -378,12 +461,22 @@ int main()
 		glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(sceneModel)); // Enviar la matriz de modelo al shader
 
         glm::mat4 viewProjection = projection * view;
-
+		
+        // Dibujar el escenario
         scene->Draw(
             modelShader.ID,
             gltfModel,
             viewProjection,
             sceneModel
+        );
+
+		// Dibujar el castillo
+    
+        castle->Draw(
+            modelShader.ID,
+            castleGLTF,
+            viewProjection,
+            castleModel
         );
         // ---------------------------------------------------------------
         // DIBUJAR CUBO DE PRUEBA
@@ -440,12 +533,14 @@ int main()
     
     // LIBERAR RECURSOS cubo
 
-    cube.reset();
+	castle.reset(); // destruye el castillo con el contexto aún vivo
+
+	cube.reset(); // destruye el cubo con el contexto aún vivo
  
     scene.reset(); // destruye las mallas con el contexto aún vivo
 
     modelShader.Delete();
-	shadowShader.Delete();// destruir shaders
+    shadowShader.Delete();// destruir shaders
 
 
 	glDeleteFramebuffers(1, &depthFBO); // destruir el framebuffer de sombras
