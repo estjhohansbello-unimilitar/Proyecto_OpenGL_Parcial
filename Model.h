@@ -64,6 +64,17 @@ public:
         const glm::mat4& sceneTransform
     );
 
+    
+    // Dibuja el escenario desde la perspectiva de la luz.
+    void DrawDepth(
+        GLuint shaderID,
+        const tinygltf::Model& gltfModel,
+        const glm::mat4& lightViewProjection,
+        const glm::mat4& sceneTransform
+    );
+
+
+  
 private:
 
     // Relaciona cada malla glTF con sus primitivas OpenGL
@@ -88,6 +99,16 @@ private:
         int nodeIndex,
         const glm::mat4& parentTransform,
         const glm::mat4& viewProjection,
+        const glm::mat4& sceneTransform
+    );
+
+    // Recorre los nodos para generar el mapa de profundidad.
+    void DrawDepthNode(
+        GLuint shaderID,
+        const tinygltf::Model& gltfModel,
+        int nodeIndex,
+        const glm::mat4& parentTransform,
+        const glm::mat4& lightViewProjection,
         const glm::mat4& sceneTransform
     );
 

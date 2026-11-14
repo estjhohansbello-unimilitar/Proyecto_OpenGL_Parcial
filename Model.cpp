@@ -1164,6 +1164,9 @@ void Model::Draw(
     const tinygltf::Scene& scene =
         gltfModel.scenes[sceneIndex];
 
+
+
+
     // Dibujar desde los nodos raíz.
     for (int rootNode : scene.nodes)
     {
@@ -1180,3 +1183,109 @@ void Model::Draw(
     // Liberar la textura vinculada.
     glBindTexture(GL_TEXTURE_2D, 0);
 }
+// ---------------------------------------------------------------
+// DIBUJAR EL ESCENARIO DESDE LA PERSPECTIVA DE LA LUZ
+void Model::DrawDepthNode( // Dibuja un nodo y sus hijos desde la perspectiva de la luz.
+    GLuint shaderID,
+    const tinygltf::Model& gltfModel,
+    int nodeIndex,
+    const glm::mat4& parentTransform,
+    const glm::mat4& lightViewProjection,
+    const glm::mat4& sceneTransform)
+{
+    if (nodeIndex < 0 ||
+        nodeIndex >= (int)gltfModel.nodes.size())
+    {
+        return;
+    }
+
+    const tinygltf::Node& node =
+        gltfModel.nodes[nodeIndex];
+
+    // Acumular las transformaciones del nodo
+    glm::mat4 globalTransform =
+        parentTransform * GetNodeTransform(node);
+
+    // Transformación final en el mundo
+    glm::mat4 modelMatrix =
+        sceneTransform * globalTransform;
+
+    // Dibujar las mallas asociadas al nodo
+    if (node.mesh >= 0 &&
+        node.mesh < (int)meshPrimitiveMap.size())
+    {
+        for (size_t meshIndex :
+        meshPrimitiveMap[node.mesh])
+        {
+            Mesh& mesh = *meshes[meshIndex];
+
+            GLint locLightMVP =
+                glGetUniformLocation(
+                    shaderID,
+                    "uLightMVP"
+                );
+
+            glm::mat4 lightMVP =
+                lightViewProjection * modelMatrix;
+
+            glUniformMatrix4fv(
+                locLightMVP,
+                1,
+                GL_FALSE,
+                glm::value_ptr(lightMVP)
+            );
+
+            mesh.Draw();
+        }
+    }
+
+    // Recorrer los hijos del nodo
+    for (int child : node.children)
+    {
+        DrawDepthNode(
+            shaderID,
+            gltfModel,
+            child,
+            globalTransform,
+            lightViewProjection,
+            sceneTransform
+        );
+    }
+}
+// ---------------------------------------------------------------
+
+void Model::DrawDepth(
+    GLuint shaderID,
+    const tinygltf::Model& gltfModel,
+    const glm::mat4& lightViewProjection,
+    const glm::mat4& sceneTransform)
+{
+    if (gltfModel.scenes.empty())
+        return;
+
+    int sceneIndex = gltfModel.defaultScene;
+
+    if (sceneIndex < 0 ||
+        sceneIndex >= (int)gltfModel.scenes.size())
+    {
+        sceneIndex = 0;
+    }
+
+    const tinygltf::Scene& scene =
+        gltfModel.scenes[sceneIndex];
+
+    // Recorrer los nodos raíz
+    for (int rootNode : scene.nodes)
+    {
+        DrawDepthNode(
+            shaderID,
+            gltfModel,
+            rootNode,
+            glm::mat4(1.0f),
+            lightViewProjection,
+            sceneTransform
+        );
+    }
+}
+
+
