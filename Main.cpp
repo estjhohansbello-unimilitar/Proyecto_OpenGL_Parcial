@@ -18,7 +18,7 @@
 
 // RUTA DEL ESCENARIO
 // (.glb, o .gltf con su .bin y texturas en la misma carpeta)
-const char* SCENE_PATH = "Models/scene.gltf";
+const char* SCENE_PATH = "Models/Environments/Snow/scene.gltf";
 
 // Tamaño al que se escala el lado más largo del escenario, en unidades del mundo.
 const float SCENE_TARGET_SIZE = 10.0f;
