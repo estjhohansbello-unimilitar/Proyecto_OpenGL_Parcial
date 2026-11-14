@@ -1,0 +1,29 @@
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Archivos de compilacion
+x64/
+x86/
+Debug/
+Release/
+[Bb]in/
+[Oo]bj/
+
+# Archivos generados
+*.ilk
+*.pdb
+*.obj
+*.idb
+*.pch
+*.tlog
+*.lastbuildstate
+*.log
+
+# Archivos temporales
+*.tmp
+*.bak
