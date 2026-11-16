@@ -35,8 +35,13 @@ const char* CASTLE_PATH =
 "Models/Castle/scene.gltf";
 
 // Tamaño deseado del castillo
-const float CASTLE_TARGET_SIZE = 4.0f;
+const float CASTLE_TARGET_SIZE = 1.4f;
 
+// RUTA DE LA ESCENA DE DRAGONES
+const char* DRAGONS_PATH = "Models/Dragons/scene.gltf";
+
+// RUTA DE LA ESCENA DE GUERREROS
+const char* WARRIORS_PATH = "Models/Warriors/scene.gltf";
 
 
 // Tamaño al que se escala el lado más largo del escenario, en unidades del mundo.
@@ -48,7 +53,7 @@ int main()
     // CARGAR EL ARCHIVO glTF 
     tinygltf::Model gltfModel;
 
-	if (!LoadGLTF(SCENE_PATH, gltfModel)) // si no se pudo cargar el archivo, termina el programa
+    if (!LoadGLTF(SCENE_PATH, gltfModel)) // si no se pudo cargar el archivo, termina el programa
     {
         return -1;
     }
@@ -64,19 +69,37 @@ int main()
         return -1;
     }
 
-	std::cout << "Cantidad de meshes: " // coleccion de mallas del modelo 
+    // CARGAR EL ARCHIVO glTF DE LOS DRAGONES
+    tinygltf::Model dragonsGLTF;
+
+    if (!LoadGLTF(DRAGONS_PATH, dragonsGLTF))
+    {
+        std::cout << "No se pudo cargar la escena de dragones" << std::endl;
+        return -1;
+    }
+
+    // CARGAR EL ARCHIVO glTF DE LOS GUERREROS
+    tinygltf::Model warriorsGLTF;
+
+    if (!LoadGLTF(WARRIORS_PATH, warriorsGLTF))
+    {
+        std::cout << "No se pudo cargar la escena de guerreros" << std::endl;
+        return -1;
+    }
+
+    std::cout << "Cantidad de meshes: " // coleccion de mallas del modelo 
         << gltfModel.meshes.size() << std::endl;
 
-	std::cout << "Cantidad de materiales: " // cuantos elementos tiene la coleccion de materiales del modelo
+    std::cout << "Cantidad de materiales: " // cuantos elementos tiene la coleccion de materiales del modelo
         << gltfModel.materials.size() << std::endl;
 
-	std::cout << "Cantidad de nodos: " // muestra la cantidad de nodos del modelo, que representan la jerarquía de objetos en la escena
+    std::cout << "Cantidad de nodos: " // muestra la cantidad de nodos del modelo, que representan la jerarquía de objetos en la escena
         << gltfModel.nodes.size() << std::endl;
 
     std::cout << "Cantidad de texturas: "
         << gltfModel.textures.size() << std::endl;
 
-	std::cout << "Cantidad de imagenes: " // muestra la cantidad de imágenes cargadas en el modelo, que pueden ser utilizadas como texturas para los materiales
+    std::cout << "Cantidad de imagenes: " // muestra la cantidad de imágenes cargadas en el modelo, que pueden ser utilizadas como texturas para los materiales
         << gltfModel.images.size() << std::endl;
 
 
@@ -126,7 +149,7 @@ int main()
 
 
     // DEPTH TEST
-	// Habilita el test de profundidad para que los objetos más cercanos tapen a los más lejanos.
+    // Habilita el test de profundidad para que los objetos más cercanos tapen a los más lejanos.
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
@@ -205,20 +228,29 @@ int main()
     // unique_ptr para poder destruirlo ANTES de glfwTerminate(): las mallas
     // llaman a glDelete* en su destructor y eso solo es válido mientras el
     // contexto OpenGL siga vivo.
-   
+
     std::unique_ptr<Model> scene = std::make_unique<Model>(gltfModel);
 
     // CREAR EL CASTILLO
     std::unique_ptr<Model> castle =
         std::make_unique<Model>(castleGLTF);
 
-
+    // CREAR EL MODELO DE LOS DRAGONES
+    std::unique_ptr<Model> dragons =
+        std::make_unique<Model>(dragonsGLTF);
+    
+	// CREAR EL MODELO DE LOS GUERREROS
+	std::unique_ptr<Model> warriors =
+		std::make_unique<Model>(warriorsGLTF);
+    
     // SHADER
+
+
 
     Shader modelShader("model.vert", "model.frag");
     Shader shadowShader("shadow.vert", "shadow.frag");
 
-	// VARIABLES DE UNIFORMES
+    // VARIABLES DE UNIFORMES
     GLint uMVP = glGetUniformLocation(modelShader.ID, "uMVP");
     GLint uModel = glGetUniformLocation(modelShader.ID, "uModel");
 
@@ -247,8 +279,8 @@ int main()
     sceneModel = glm::scale(sceneModel, glm::vec3(SCENE_TARGET_SIZE / maxSide));
     sceneModel = glm::translate(sceneModel, glm::vec3(-center.x, -scene->boundsMin.y, -center.z));
 
-	
-    
+
+
     // ---------------------------------------------------------------
     // TRANSFORMACIÓN DEL CASTILLO
     // ---------------------------------------------------------------
@@ -274,8 +306,8 @@ int main()
     // Posición que anteriormente ocupaba el cubo
     castleModel = glm::translate(
         castleModel,
-		//Las coordenadas del castillo se ajustan para que esté centrado en el eje X y Z, y apoyado en el piso (y=0)
-        glm::vec3(-1.0f, 0.75f, -2.0f)
+        //Las coordenadas del castillo se ajustan para que esté centrado en el eje X y Z, y apoyado en el piso (y=0)
+        glm::vec3(1.0f, 0.70f, -0.75f)
     );
 
     // Escala del castillo
@@ -294,6 +326,54 @@ int main()
         )
     );
 
+    // ---------------------------------------------------------------
+    // TRANSFORMACIÓN DE LOS DRAGONES
+    //----------------------------------------------------------------
+
+    // Transformación de los dragones
+    glm::mat4 dragonsModel = glm::mat4(1.0f);
+
+    // Cambiar posición
+    dragonsModel = glm::translate(
+        dragonsModel,
+        glm::vec3(1.0f, 0.55f, 2.0f)
+    );
+
+    // Cambiar rotación
+    dragonsModel = glm::rotate(
+        dragonsModel,
+        glm::radians(150.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+
+    // Cambiar escala
+    dragonsModel = glm::scale(
+        dragonsModel,
+        glm::vec3(0.1f, 0.1f, 0.1f)
+    );
+
+	//TRANSFORMACIÓN DE LOS GUERREROS
+    // Transformación de los guerreros
+    glm::mat4 warriorsModel = glm::mat4(1.0f);
+
+    // Cambiar posición
+    warriorsModel = glm::translate(
+        warriorsModel,
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+
+    // Cambiar rotación
+    warriorsModel = glm::rotate(
+        warriorsModel,
+        glm::radians(0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+
+    // Cambiar escala
+    warriorsModel = glm::scale(
+        warriorsModel,
+        glm::vec3(0.05f, 0.05f, 0.05f)
+    );
 
 	// ---------------------------------------------------------------
     // CREAR CUBO DE PRUEBA
@@ -437,7 +517,7 @@ int main()
             glm::value_ptr(cubeLightMVP)
         );
 
-        cube->Draw();
+		// cube->Draw(); // Descomenta esta línea si quieres que el cubo genere sombras
 
         // Dibujar esfera en el mapa de profundidad
         glm::mat4 sphereLightMVP =
@@ -450,7 +530,7 @@ int main()
             glm::value_ptr(sphereLightMVP)
         );
 
-        sphere->Draw();
+		// sphere->Draw(); // Descomenta esta línea si quieres que la esfera genere sombras
 
 		//SEGUNDA PASADA: DIBUJAR ESCENA CON SOMBRAS
 
@@ -463,7 +543,7 @@ int main()
 
         // LIMPIAR PANTALLA
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.015f, 0.025f, 0.12f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -531,6 +611,23 @@ int main()
             viewProjection,
             castleModel
         );
+
+        dragons->Draw(
+            modelShader.ID,
+            dragonsGLTF,
+            viewProjection,
+            dragonsModel
+
+        );
+
+        // Dibujar los guerreros
+        warriors->Draw(
+            modelShader.ID,
+            warriorsGLTF,
+            viewProjection,
+            warriorsModel
+        );
+
         // ---------------------------------------------------------------
         // DIBUJAR CUBO DE PRUEBA
         // ---------------------------------------------------------------
@@ -571,7 +668,7 @@ int main()
         );
 
         // Dibujar cubo
-        cube->Draw();
+        // cube->Draw();
 
         // ---------------------------------------------------------------
         // DIBUJAR ESFERA DE PRUEBA PHONG
@@ -614,7 +711,7 @@ int main()
         );
 
         // Dibujar esfera
-        sphere->Draw();
+        // sphere->Draw();
 
 
         // TERMINAR FRAME
