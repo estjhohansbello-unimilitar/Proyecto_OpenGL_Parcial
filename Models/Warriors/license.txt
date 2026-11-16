@@ -1,0 +1,11 @@
+Model Information:
+* title:	VOID NEMESIS // The Abyssal Angel
+* source:	https://sketchfab.com/3d-models/void-nemesis-the-abyssal-angel-612077d82bb64bd6a113142c496cdc89
+* author:	6 (https://sketchfab.com/Atahan3D)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "VOID NEMESIS // The Abyssal Angel" (https://sketchfab.com/3d-models/void-nemesis-the-abyssal-angel-612077d82bb64bd6a113142c496cdc89) by 6 (https://sketchfab.com/Atahan3D) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
