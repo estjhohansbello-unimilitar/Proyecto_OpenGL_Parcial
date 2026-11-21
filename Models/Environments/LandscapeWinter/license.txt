@@ -1,0 +1,11 @@
+Model Information:
+* title:	Winter Lake Landscape - (World Machine)
+* source:	https://sketchfab.com/3d-models/winter-lake-landscape-world-machine-5cf8480785d4435b978eba3fa82f96b2
+* author:	gamewarming (https://sketchfab.com/gamewarming)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Winter Lake Landscape - (World Machine)" (https://sketchfab.com/3d-models/winter-lake-landscape-world-machine-5cf8480785d4435b978eba3fa82f96b2) by gamewarming (https://sketchfab.com/gamewarming) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

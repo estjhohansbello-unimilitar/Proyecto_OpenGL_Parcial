@@ -281,6 +281,9 @@ Model::~Model()
 void Model::LoadMaterials(
     const tinygltf::Model& gltfModel)
 {
+
+
+
     glTextures.assign(gltfModel.textures.size(), 0);
 
     textureTried.assign(gltfModel.textures.size(), 0);
@@ -331,13 +334,19 @@ void Model::LoadMaterials(
         }
 
         // Textura de color base.
+      
+        // -------------------------------------------------------
+        // TEXTURA DEL MATERIAL
+        // -------------------------------------------------------
+    
+        // Primero buscamos la textura de color base.
         if (pbr.baseColorTexture.index >= 0)
         {
             if (pbr.baseColorTexture.texCoord != 0)
             {
                 std::cout
                     << "Material " << i
-                    << ": utiliza TEXCOORD_"
+                    << ": utiliza TEXCOORD_" 
                     << pbr.baseColorTexture.texCoord
                     << ". Solo se soporta TEXCOORD_0."
                     << std::endl;
@@ -346,6 +355,40 @@ void Model::LoadMaterials(
             data.texture =
                 getTexture(pbr.baseColorTexture.index);
         }
+
+        // Si no tiene baseColorTexture,
+        // buscamos una textura emisiva.
+        else if (mat.emissiveTexture.index >= 0)
+        {
+            std::cout
+                << "Material " << i
+                << ": usando emissiveTexture."
+                << std::endl;
+
+            data.texture =
+                getTexture(mat.emissiveTexture.index);
+
+            // Este material se dibujará sin iluminación.
+            data.unlit = true;
+        }
+
+
+		//---------------------------------------------------------------
+        //TEMPORALLL
+        std::cout << "\n--- MATERIAL " << i << " ---" << std::endl;
+
+        std::cout << "Nombre: " << mat.name << std::endl;
+
+        std::cout << "Base Color Texture: "
+            << pbr.baseColorTexture.index << std::endl;
+
+        std::cout << "Base Color Factor: ";
+
+        for (double value : pbr.baseColorFactor)
+            std::cout << value << " ";
+
+        std::cout << std::endl;
+        //TEMPORALL-----------------------------------------
 
         // Tratamiento básico de transparencia.
         if (mat.alphaMode == "MASK")
@@ -584,7 +627,13 @@ void Model::LoadMesh(
                         << std::endl;
                 }
             }
-
+			// temporalll
+            std::cout << "Tiene TEXCOORD_0: "
+                << (uvIt != primitive.attributes.end())
+                << std::endl;
+            //temporall 
+             
+            
             // ---------------------------------------------------
             // EXTRAER INDICES
             // ---------------------------------------------------
@@ -1034,37 +1083,44 @@ void Model::DrawNode(
             }
 
             // Obtener uniforms.
-            GLint locColor =
+			GLint locColor = // Uniform para el color base del material.
                 glGetUniformLocation(
                     shaderID,
                     "uBaseColor"
                 );
 
-            GLint locHasTex =
+			GLint locHasTex = // Uniform para indicar si el material tiene textura.
                 glGetUniformLocation(
                     shaderID,
                     "uHasTexture"
                 );
 
-            GLint locCutoff =
+			GLint locUnlit = // Uniform para indicar si el material es "unlit" (sin iluminación).
+                glGetUniformLocation(
+                    shaderID,
+                    "uUnlit"
+                );
+
+
+			GLint locCutoff = // Uniform para el umbral de recorte de transparencia del material.
                 glGetUniformLocation(
                     shaderID,
                     "uAlphaCutoff"
                 );
 
-            GLint locTex =
+			GLint locTex = // Uniform para la textura del material.
                 glGetUniformLocation(
                     shaderID,
                     "uTex"
                 );
 
-            GLint locModel =
+			GLint locModel = // Uniform para la matriz de transformación del modelo.
                 glGetUniformLocation(
                     shaderID,
                     "uModel"
                 );
 
-            GLint locMVP =
+			GLint locMVP = // Uniform para la matriz de transformación completa (MVP).
                 glGetUniformLocation(
                     shaderID,
                     "uMVP"
@@ -1089,7 +1145,7 @@ void Model::DrawNode(
             );
 
             // Enviar material.
-            glUniform4f(
+			glUniform4f( // Uniform para el color base del material.
                 locColor,
                 material->baseColor.r,
                 material->baseColor.g,
@@ -1097,12 +1153,17 @@ void Model::DrawNode(
                 material->baseColor.a
             );
 
-            glUniform1i(
+			glUniform1i( // Uniform para indicar si el material tiene textura.
                 locHasTex,
                 material->texture != 0 ? 1 : 0
             );
 
-            glUniform1f(
+			glUniform1i( // Uniform para indicar si el material es "unlit" (sin iluminación).
+                locUnlit,
+                material->unlit ? 1 : 0
+            );
+
+			glUniform1f( // Uniform para el umbral de recorte de transparencia del material.
                 locCutoff,
                 material->alphaCutoff
             );

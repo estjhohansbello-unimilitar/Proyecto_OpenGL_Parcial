@@ -28,14 +28,14 @@
 
 // RUTA DEL ESCENARIO
 // (.glb, o .gltf con su .bin y texturas en la misma carpeta)
-const char* SCENE_PATH = "Models/Environments/Snow/scene.gltf";
+const char* SCENE_PATH = "Models/Environments/LandscapeWinter/scene.gltf";
 
 // RUTA DEL CASTILLO
 const char* CASTLE_PATH =
 "Models/Castle/scene.gltf";
 
 // Tamaño deseado del castillo
-const float CASTLE_TARGET_SIZE = 1.4f;
+const float CASTLE_TARGET_SIZE = 0.05f;
 
 // RUTA DE LA ESCENA DE DRAGONES
 const char* DRAGONS_PATH = "Models/Dragons/scene.gltf";
@@ -45,7 +45,7 @@ const char* WARRIORS_PATH = "Models/Warriors/scene.gltf";
 
 
 // Tamaño al que se escala el lado más largo del escenario, en unidades del mundo.
-const float SCENE_TARGET_SIZE = 10.0f;
+const float SCENE_TARGET_SIZE = 2.5f;
 
 
 int main()
@@ -307,7 +307,7 @@ int main()
     castleModel = glm::translate(
         castleModel,
         //Las coordenadas del castillo se ajustan para que esté centrado en el eje X y Z, y apoyado en el piso (y=0)
-        glm::vec3(1.0f, 0.70f, -0.75f)
+        glm::vec3(0.0f, 0.1f, -0.01f)
     );
 
     // Escala del castillo
@@ -336,7 +336,7 @@ int main()
     // Cambiar posición
     dragonsModel = glm::translate(
         dragonsModel,
-        glm::vec3(1.0f, 0.55f, 2.0f)
+        glm::vec3(0.0f, 0.0f, 0.0f)
     );
 
     // Cambiar rotación
@@ -349,17 +349,18 @@ int main()
     // Cambiar escala
     dragonsModel = glm::scale(
         dragonsModel,
-        glm::vec3(0.1f, 0.1f, 0.1f)
+		glm::vec3(0.005f, 0.005f, 0.005f)
     );
-
+	//---------------------------------------------------------------
 	//TRANSFORMACIÓN DE LOS GUERREROS
+	//--------------------------------------------------------------- 
     // Transformación de los guerreros
     glm::mat4 warriorsModel = glm::mat4(1.0f);
 
     // Cambiar posición
     warriorsModel = glm::translate(
         warriorsModel,
-        glm::vec3(0.0f, 1.0f, 0.0f)
+        glm::vec3(0.0f, 0.0f, 0.0f)
     );
 
     // Cambiar rotación
@@ -668,7 +669,7 @@ int main()
         );
 
         // Dibujar cubo
-        // cube->Draw();
+         //cube->Draw();
 
         // ---------------------------------------------------------------
         // DIBUJAR ESFERA DE PRUEBA PHONG
@@ -711,7 +712,7 @@ int main()
         );
 
         // Dibujar esfera
-        // sphere->Draw();
+         //sphere->Draw();
 
 
         // TERMINAR FRAME

@@ -15,11 +15,17 @@
 // Información básica de los materiales del modelo glTF
 struct MaterialData
 {
-	glm::vec4 baseColor = glm::vec4(1.0f); // color base (RGBA)
+	glm::vec4 baseColor = glm::vec4(1.0f); // Color base del material
 
-    GLuint texture = 0;
+	GLuint texture = 0;// ID de la textura OpenGL (0 si no hay textura)
 
-    float alphaCutoff = 0.0f;
+	float alphaCutoff = 0.0f; // Umbral de recorte para materiales con transparencia (MASK)
+
+    // Indica si el material debe dibujarse
+    // sin iluminación ni sombras.
+	bool unlit = false; // true si el material es "unlit" (sin iluminación)
+
+    //La nueva variable unlit permitirá identificar los materiales que deben mostrar su textura directamente.
 };
 
 class Model
