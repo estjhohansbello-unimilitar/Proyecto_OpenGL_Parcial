@@ -1,3 +1,4 @@
+
 #version 330 core
 
 out vec4 FragColor;
@@ -47,7 +48,7 @@ float ShadowCalculation(
     );
 
     vec2 texelSize =
-        1.0 / textureSize(uShadowMap, 0);
+        1.0 / vec2(textureSize(uShadowMap, 0));
 
     float shadow = 0.0;
 
@@ -97,16 +98,9 @@ void main()
     }
 
     // -----------------------------------------------------------
-    // MATERIAL SIN ILUMINACIÓN
+    // NORMAL DE LA SUPERFICIE
     // -----------------------------------------------------------
 
-    if (uUnlit != 0)
-    {
-        FragColor = base;
-        return;
-    }
-
-    // Normal de la superficie
     vec3 normal = normalize(vNormal);
 
     if (!gl_FrontFacing)
@@ -117,6 +111,26 @@ void main()
     // Dirección de la luz
     vec3 lightDir =
         normalize(vec3(1.4, 1.0, 0.3));
+
+    // -----------------------------------------------------------
+    // MATERIAL SIN ILUMINACIÓN, PERO CON SOMBRAS
+    // -----------------------------------------------------------
+
+    if (uUnlit != 0)
+    {
+        float shadow = ShadowCalculation(
+            vPosLightSpace,
+            normal,
+            lightDir
+        );
+
+        FragColor = vec4(
+            base.rgb * (1.0 - shadow * 0.75),
+            base.a
+        );
+
+        return;
+    }
 
     // Dirección hacia la cámara
     vec3 viewDir =

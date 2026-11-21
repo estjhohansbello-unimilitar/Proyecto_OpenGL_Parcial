@@ -35,7 +35,7 @@ const char* CASTLE_PATH =
 "Models/Castle/scene.gltf";
 
 // Tamaño deseado del castillo
-const float CASTLE_TARGET_SIZE = 0.05f;
+const float CASTLE_TARGET_SIZE = 0.29f;
 
 // RUTA DE LA ESCENA DE DRAGONES
 const char* DRAGONS_PATH = "Models/Dragons/scene.gltf";
@@ -303,18 +303,26 @@ int main()
     // Crear matriz de transformación
     glm::mat4 castleModel(1.0f);
 
-    // Posición que anteriormente ocupaba el cubo
     castleModel = glm::translate(
         castleModel,
         //Las coordenadas del castillo se ajustan para que esté centrado en el eje X y Z, y apoyado en el piso (y=0)
-        glm::vec3(0.0f, 0.1f, -0.01f)
+        glm::vec3(0.25f, 0.001f, 0.3f) //glm::vec3(0.25f, 0.001f, 0.75f)
     );
+
+    // Rotación del castillo
+    castleModel = glm::rotate(
+        castleModel,
+        glm::radians(195.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+
 
     // Escala del castillo
     castleModel = glm::scale(
         castleModel,
         glm::vec3(CASTLE_TARGET_SIZE / castleMaxSide)
     );
+
 
     // Centrar el modelo y apoyar su base
     castleModel = glm::translate(
@@ -336,20 +344,20 @@ int main()
     // Cambiar posición
     dragonsModel = glm::translate(
         dragonsModel,
-        glm::vec3(0.0f, 0.0f, 0.0f)
+        glm::vec3(-0.5f, 0.15f, 0.0f)
     );
 
     // Cambiar rotación
     dragonsModel = glm::rotate(
         dragonsModel,
-        glm::radians(150.0f),
+        glm::radians(15.0f),
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
 
     // Cambiar escala
     dragonsModel = glm::scale(
         dragonsModel,
-		glm::vec3(0.005f, 0.005f, 0.005f)
+		glm::vec3(0.01f, 0.01f, 0.01f)
     );
 	//---------------------------------------------------------------
 	//TRANSFORMACIÓN DE LOS GUERREROS
@@ -357,18 +365,21 @@ int main()
     // Transformación de los guerreros
     glm::mat4 warriorsModel = glm::mat4(1.0f);
 
+  
+
     // Cambiar posición
     warriorsModel = glm::translate(
         warriorsModel,
-        glm::vec3(0.0f, 0.0f, 0.0f)
+        glm::vec3(0.1f, 0.05f, 0.65f)
     );
-
+    
     // Cambiar rotación
     warriorsModel = glm::rotate(
         warriorsModel,
-        glm::radians(0.0f),
+        glm::radians(220.0f),
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
+  
 
     // Cambiar escala
     warriorsModel = glm::scale(
@@ -506,6 +517,22 @@ int main()
             castleGLTF,
             lightSpaceMatrix,
             castleModel
+        );
+
+        // Generar sombras de los dragones
+        dragons->DrawDepth(
+            shadowShader.ID,
+            dragonsGLTF,
+            lightSpaceMatrix,
+            dragonsModel
+        );
+
+        // Generar sombras de los guerreros
+        warriors->DrawDepth(
+            shadowShader.ID,
+            warriorsGLTF,
+            lightSpaceMatrix,
+            warriorsModel
         );
 
         // Dibujar el cubo en el mapa de profundidad
@@ -729,6 +756,10 @@ int main()
 	sphere.reset(); // destruye la esfera con el contexto aún vivo
 
 	castle.reset(); // destruye el castillo con el contexto aún vivo
+
+	dragons.reset(); // destruye los dragones con el contexto aún vivo
+
+	warriors.reset(); // destruye los guerreros con el contexto aún vivo
 
 	cube.reset(); // destruye el cubo con el contexto aún vivo
  
