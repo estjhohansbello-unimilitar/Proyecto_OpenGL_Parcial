@@ -43,10 +43,33 @@ const char* DRAGONS_PATH = "Models/Dragons/scene.gltf";
 // RUTA DE LA ESCENA DE GUERREROS
 const char* WARRIORS_PATH = "Models/Warriors/scene.gltf";
 
+// RUTA DE LA ESCENA DE LA LUNA
+const char* MOON_PATH = "Models/Moon/scene.gltf";
+
+//RUTA DEL DRAGON VOLADOR 
+const char* FLYINGDRAGON_PATH = "Models/FlyingDragon/scene.gltf";
 
 // Tamaño al que se escala el lado más largo del escenario, en unidades del mundo.
 const float SCENE_TARGET_SIZE = 2.5f;
 
+// ---------------------------------------------------------------
+//FUNCION BEZIER
+// ---------------------------------------------------------------
+glm::vec3 BezierCubic(
+    const glm::vec3& P0,
+    const glm::vec3& P1,
+    const glm::vec3& P2,
+    const glm::vec3& P3,
+    float t)
+{
+    float u = 1.0f - t;
+
+    return
+        u * u * u * P0 +
+        3.0f * u * u * t * P1 +
+        3.0f * u * t * t * P2 +
+        t * t * t * P3;
+}
 
 int main()
 {
@@ -78,6 +101,15 @@ int main()
         return -1;
     }
 
+    // CARGAR EL ARCHIVO glTF DEL DRAGÓN VOLADOR
+    tinygltf::Model flyingDragonGLTF;
+
+    if (!LoadGLTF(FLYINGDRAGON_PATH, flyingDragonGLTF))
+    {
+        std::cout << "No se pudo cargar el dragón volador" << std::endl;
+        return -1;
+    }
+
     // CARGAR EL ARCHIVO glTF DE LOS GUERREROS
     tinygltf::Model warriorsGLTF;
 
@@ -102,7 +134,36 @@ int main()
     std::cout << "Cantidad de imagenes: " // muestra la cantidad de imágenes cargadas en el modelo, que pueden ser utilizadas como texturas para los materiales
         << gltfModel.images.size() << std::endl;
 
+	// CARGAR EL ARCHIVO glTF DE LA LUNA
+	tinygltf::Model moonGLTF;
+	if (!LoadGLTF(MOON_PATH, moonGLTF))
+	{
+		std::cout << "No se pudo cargar la escena de la luna" << std::endl;
+		return -1;
+	}
+    std::cout << "\n--- INFORMACION DE LA LUNA ---" << std::endl;
 
+    std::cout << "Meshes: "
+        << moonGLTF.meshes.size() << std::endl;
+
+    std::cout << "Materiales: "
+        << moonGLTF.materials.size() << std::endl;
+
+    std::cout << "Texturas: "
+        << moonGLTF.textures.size() << std::endl;
+
+    std::cout << "Imagenes: "
+        << moonGLTF.images.size() << std::endl;
+
+    for (size_t i = 0; i < moonGLTF.images.size(); i++)
+    {
+        std::cout << "Imagen " << i
+            << ": " << moonGLTF.images[i].uri
+            << " | Ancho: " << moonGLTF.images[i].width
+            << " | Alto: " << moonGLTF.images[i].height
+            << std::endl;
+    }
+    
     // INICIALIZAR GLFW
     //glfwInit() prepara el entorno del sistema operativo (ventanas, monitores,
 // teclado/mouse y memoria interna).
@@ -243,12 +304,58 @@ int main()
 	std::unique_ptr<Model> warriors =
 		std::make_unique<Model>(warriorsGLTF);
     
-    // SHADER
+	// CREAR EL MODELO DE LA LUNA
+ // CREAR EL MODELO DE LA LUNA
+    std::unique_ptr<Model> moon =
+        std::make_unique<Model>(moonGLTF);
 
+    glm::mat4 moonModel = glm::mat4(1.0f);
 
+    float moonRotation = 0.0f;
+	
+    
+    //Crear el modelo del dragon volador
+
+    std::unique_ptr<Model> flyingDragon =
+        std::make_unique<Model>(flyingDragonGLTF);
+    //------------------------------------------------------
+    // DIMENSIONES DEL DRAGÓN VOLADOR
+    //------------------------------------------------------
+
+    glm::vec3 flyingDragonSize =
+        flyingDragon->boundsMax - flyingDragon->boundsMin;
+
+    glm::vec3 flyingDragonCenter =
+        (flyingDragon->boundsMin + flyingDragon->boundsMax) * 0.5f;
+
+    float flyingDragonMaxSide = std::max(
+        flyingDragonSize.x,
+        std::max(flyingDragonSize.y, flyingDragonSize.z)
+    );
+
+// Tamaño deseado del dragón
+float flyingDragonTargetSize = 0.5f;
+
+    //------------------------------------------------------
+    // PUNTOS DE CONTROL DE LA CURVA DE BEZIER
+    //------------------------------------------------------
+
+    glm::vec3 P0(-1.0f, 0.5f, -1.0f);
+    glm::vec3 P1(-0.5f, 2.0f, 0.0f);
+    glm::vec3 P2(1.0f, 2.0f, 1.0f);
+    glm::vec3 P3(2.0f, 0.5f, 0.0f);
+
+    //------------------------------------------------------
+    // ANIMACIÓN DEL DRAGÓN VOLADOR
+    //------------------------------------------------------
+
+    float curveT = 0.0f;
+    float curveSpeed = 0.15f;
+    float curveDirection = 1.0f;
 
     Shader modelShader("model.vert", "model.frag");
     Shader shadowShader("shadow.vert", "shadow.frag");
+
 
     // VARIABLES DE UNIFORMES
     GLint uMVP = glGetUniformLocation(modelShader.ID, "uMVP");
@@ -306,7 +413,7 @@ int main()
     castleModel = glm::translate(
         castleModel,
         //Las coordenadas del castillo se ajustan para que esté centrado en el eje X y Z, y apoyado en el piso (y=0)
-        glm::vec3(0.25f, 0.001f, 0.3f) //glm::vec3(0.25f, 0.001f, 0.75f)
+         glm::vec3(0.25f, 0.001f, 0.75f)
     );
 
     // Rotación del castillo
@@ -387,6 +494,49 @@ int main()
         glm::vec3(0.05f, 0.05f, 0.05f)
     );
 
+
+    // ---------------------------------------------------------------
+    // TRANSFORMACIÓN DE LA LUNA
+    // ---------------------------------------------------------------
+
+    // Obtener dimensiones de la luna
+    glm::vec3 moonSize =
+        moon->boundsMax - moon->boundsMin;
+
+    // Centro geométrico de la luna
+    glm::vec3 moonCenter =
+        (moon->boundsMin + moon->boundsMax) * 0.5f;
+
+    // Lado más largo
+    float moonMaxSide =
+        std::max(
+            moonSize.x,
+            std::max(moonSize.y, moonSize.z)
+        );
+
+    // Posición de la luna en el escenario
+    glm::vec3 moonPosition(0.0f, 0.5f, -0.5f);
+
+    // Tamaño deseado
+    float moonTargetSize = 0.15f;
+
+    // Matriz inicial
+    moonModel = glm::translate(
+        glm::mat4(1.0f),
+        moonPosition
+    );
+
+    moonModel = glm::scale(
+        moonModel,
+        glm::vec3(moonTargetSize / moonMaxSide)
+    );
+
+    moonModel = glm::translate(
+        moonModel,
+        -moonCenter
+    );
+   
+   
 	// ---------------------------------------------------------------
     // CREAR CUBO DE PRUEBA
     std::unique_ptr<Cube> cube = std::make_unique<Cube>();
@@ -474,6 +624,97 @@ int main()
         lastFrame = currentFrame;
 
 
+        //------------------------------------------------------
+// CURVA DE BEZIER PARA EL MOVIMIENTO DEL DRAGÓN
+//------------------------------------------------------
+
+        curveT += curveSpeed * deltaTime * curveDirection;
+
+        if (curveT >= 1.0f)
+        {
+            curveT = 1.0f;
+            curveDirection = -1.0f;
+        }
+
+        if (curveT <= 0.0f)
+        {
+            curveT = 0.0f;
+            curveDirection = 1.0f;
+        }
+
+        // Calcular posición del dragón volador
+        glm::vec3 flyingDragonPosition = BezierCubic(
+            P0,
+            P1,
+            P2,
+            P3,
+            curveT
+        );
+
+        //------------------------------------------------------
+        // TRANSFORMACIÓN DEL DRAGÓN VOLADOR
+        //------------------------------------------------------
+
+        glm::mat4 flyingDragonModel = glm::mat4(1.0f);
+
+        // Cambiar posición
+        flyingDragonModel = glm::translate(
+            flyingDragonModel,
+            flyingDragonPosition
+        );
+
+        // Cambiar escala
+        flyingDragonModel = glm::scale(
+            flyingDragonModel,
+            glm::vec3(
+                flyingDragonTargetSize / flyingDragonMaxSide
+            )
+        );
+
+        // Centrar modelo
+        flyingDragonModel = glm::translate(
+            flyingDragonModel,
+            -flyingDragonCenter
+        );
+		//_--------------------------------------------------------------
+ 
+
+        // ---------------------------------------------------------------
+        // ROTACIÓN DE LA LUNA
+        // ---------------------------------------------------------------
+
+        // Velocidad de rotación: 20 grados por segundo
+        moonRotation += glm::radians(20.0f) * deltaTime;
+
+        // Evitar que el ángulo crezca indefinidamente
+        if (moonRotation >= glm::radians(360.0f))
+        {
+            moonRotation -= glm::radians(360.0f);
+        }
+
+        // Construir nuevamente la matriz de transformación
+        moonModel = glm::translate(
+            glm::mat4(1.0f),
+            moonPosition
+        );
+
+        moonModel = glm::rotate(
+            moonModel,
+            moonRotation,
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        );
+
+        moonModel = glm::scale(
+            moonModel,
+            glm::vec3(moonTargetSize / moonMaxSide)
+        );
+
+        moonModel = glm::translate(
+            moonModel,
+            -moonCenter
+        );
+
+
         // INPUT DE CÁMARA
 
         camera.Inputs(window, deltaTime);   // teclado
@@ -533,6 +774,22 @@ int main()
             warriorsGLTF,
             lightSpaceMatrix,
             warriorsModel
+        );
+        
+      // Generar sombras de la luna
+        moon->DrawDepth(
+            shadowShader.ID,
+            moonGLTF,
+            lightSpaceMatrix,
+            moonModel
+        );
+
+        // Generar sombras del dragón volador
+        flyingDragon->DrawDepth(
+            shadowShader.ID,
+            flyingDragonGLTF,
+            lightSpaceMatrix,
+            flyingDragonModel
         );
 
         // Dibujar el cubo en el mapa de profundidad
@@ -613,9 +870,6 @@ int main()
             1
         );
 
-
-
-
 		glm::mat4 mvp = projection * view * sceneModel; // Matriz final de transformación (MVP)
 
 		glUniformMatrix4fv(uMVP, 1, GL_FALSE, glm::value_ptr(mvp)); // Enviar la matriz MVP al shader
@@ -639,7 +893,7 @@ int main()
             viewProjection,
             castleModel
         );
-
+		// Dibujar los dragones
         dragons->Draw(
             modelShader.ID,
             dragonsGLTF,
@@ -654,6 +908,22 @@ int main()
             warriorsGLTF,
             viewProjection,
             warriorsModel
+        );
+
+        // Dibujar la luna
+        moon->Draw(
+            modelShader.ID,
+            moonGLTF,
+            viewProjection,
+            moonModel
+        );
+
+        // Dibujar el dragón volador
+        flyingDragon->Draw(
+            modelShader.ID,
+            flyingDragonGLTF,
+            viewProjection,
+            flyingDragonModel
         );
 
         // ---------------------------------------------------------------
@@ -760,6 +1030,10 @@ int main()
 	dragons.reset(); // destruye los dragones con el contexto aún vivo
 
 	warriors.reset(); // destruye los guerreros con el contexto aún vivo
+
+	moon.reset();// destruye la luna con el contexto aún vivo
+
+    flyingDragon.reset();
 
 	cube.reset(); // destruye el cubo con el contexto aún vivo
  
