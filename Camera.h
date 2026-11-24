@@ -24,7 +24,7 @@ public:
 
 	int width;
 	int height;
-
+	  
 	// Qué tan rápido se mueve la cámara por frame
 	float speed = 2.0f;
 

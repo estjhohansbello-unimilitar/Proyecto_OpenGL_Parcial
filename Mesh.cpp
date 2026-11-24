@@ -16,7 +16,7 @@ Mesh::Mesh(
 
     // Crear el VBO
     vbo = std::make_unique<VBO>(
-        reinterpret_cast<GLfloat*>(this->vertices.data()),
+		reinterpret_cast<GLfloat*>(this->vertices.data()),// reinterpretar los datos de los vértices como un puntero a GLfloat
         this->vertices.size() * sizeof(Vertex)
     );
 

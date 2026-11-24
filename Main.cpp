@@ -1,4 +1,4 @@
-#include <iostream>
+#include <iostream> // std::cout, std::endl
 #include <algorithm> // std::max
 #include <memory>    // std::unique_ptr
 
@@ -9,11 +9,11 @@
 #include <glm/gtc/matrix_transform.hpp> // matrices de transformación (traslación, rotación, escalado, proyección)
 #include <glm/gtc/type_ptr.hpp> // permite convertir matrices y vectores a punteros de tipo float
 
-#include "shaderClass.h"
-#include "Camera.h"
+#include "shaderClass.h" // para compilar y enlazar shaders
+#include "Camera.h" // para controlar la cámara con teclado y mouse
 
-#include "Model.h"
-#include "ModelLoader.h"
+#include "Model.h" //para cargar y dibujar modelos glTF
+#include "ModelLoader.h" // para cargar archivos glTF
 
 
 //cubo de prueba
@@ -55,17 +55,20 @@ const float SCENE_TARGET_SIZE = 2.5f;
 // ---------------------------------------------------------------
 //FUNCION BEZIER
 // ---------------------------------------------------------------
+// Función para calcular un punto en una curva de Bezier cúbica, una curva de bezier cúbica se define por cuatro puntos de control (P0, P1, P2, P3) y un parámetro t que varía entre 0 y 1.
 glm::vec3 BezierCubic(
-    const glm::vec3& P0,
-    const glm::vec3& P1,
-    const glm::vec3& P2,
-    const glm::vec3& P3,
+	const glm::vec3& P0, // punto inicial de la curva
+	const glm::vec3& P1, // primer punto de control de la curva
+	const glm::vec3& P2, // segundo punto de control de la curva
+	const glm::vec3& P3, // punto final de la curva
     float t)
 {
-    float u = 1.0f - t;
-
-    return
-        u * u * u * P0 +
+	float u = 1.0f - t;  //t representa la posicion de la trayectoria t = 0: el modelo está en el punto inicial P0., t = 0.5: el modelo está en una posición intermedia.
+    //t = 1: el modelo llega al punto final P3.
+    return 
+        // B(t) = (1 - t) ^ 3P_0 + 3(1 - t) ^ 2tP_1 + 3(1 - t)t ^ 2P_2 + t ^ 3P_3
+        
+        u * u * u * P0 + 
         3.0f * u * u * t * P1 +
         3.0f * u * t * t * P2 +
         t * t * t * P3;
@@ -128,7 +131,7 @@ int main()
     std::cout << "Cantidad de nodos: " // muestra la cantidad de nodos del modelo, que representan la jerarquía de objetos en la escena
         << gltfModel.nodes.size() << std::endl;
 
-    std::cout << "Cantidad de texturas: "
+	std::cout << "Cantidad de texturas: " // muestra la cantidad de texturas cargadas en el modelo, que pueden ser utilizadas para los materiales
         << gltfModel.textures.size() << std::endl;
 
     std::cout << "Cantidad de imagenes: " // muestra la cantidad de imágenes cargadas en el modelo, que pueden ser utilizadas como texturas para los materiales
@@ -170,10 +173,13 @@ int main()
     glfwInit();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // OpenGL 3.3
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // perfil core (sin funciones obsoletas)
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // OpenGL 3.3
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // perfil core (sin funciones obsoletas) 
+	//el perfil core de OpenGL es una configuración que excluye funciones obsoletas 
+    // y promueve el uso de características modernas y eficientes de OpenGL, 
+    // lo que resulta en un código más limpio y optimizado para aplicaciones gráficas actuales.
 
-    // Activar buffer de profundidad
+	// Activar buffer de profundidad, que permite que los objetos más cercanos tapen a los más lejanos.
     glfwWindowHint(GLFW_DEPTH_BITS, 24);
 
 
@@ -183,8 +189,8 @@ int main()
         800,
         800,
         "Proyecto OpenGL - Escenario glTF",
-        NULL,
-        NULL
+		NULL, // monitor (NULL = ventana normal)
+		NULL // ventana compartida (NULL = no compartir)
     );
 
     if (window == NULL)
@@ -196,7 +202,7 @@ int main()
         return -1;
     }
 
-    glfwMakeContextCurrent(window);
+	glfwMakeContextCurrent(window); // hace que el contexto de OpenGL de la ventana sea el actual en el hilo principal
 
     // Oculta el cursor y lo "atrapa" dentro de la ventana (estilo FPS)
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -205,8 +211,9 @@ int main()
     // INICIALIZAR GLAD
     // gladLoad busca y carga las direcciones de memoria de las funciones 
 // de OpenGL específicas de tu tarjeta gráfica.
+    
     gladLoadGL();
-    glViewport(0, 0, 800, 800);
+	glViewport(0, 0, 800, 800); // tamaño de la ventana (en píxeles) y del viewport (área de renderizado)
 
 
     // DEPTH TEST
@@ -219,33 +226,35 @@ int main()
     // CONFIGURACIÓN DEL MAPA DE SOMBRAS
     // ---------------------------------------------------------------
 
-    const unsigned int SHADOW_WIDTH = 2048;
-    const unsigned int SHADOW_HEIGHT = 2048;
+	const unsigned int SHADOW_WIDTH = 2048; // Resolución del mapa de sombras (ancho)
+	const unsigned int SHADOW_HEIGHT = 2048; // Resolución del mapa de sombras (alto)
 
     // Framebuffer para almacenar las profundidades
-    GLuint depthFBO;
-    glGenFramebuffers(1, &depthFBO);
+	GLuint depthFBO; // Identificador del framebuffer de profundidad
+	glGenFramebuffers(1, &depthFBO); // Genera un framebuffer y almacena su ID en depthFBO
 
     // Textura de profundidad
-    GLuint depthMap;
-    glGenTextures(1, &depthMap);
+	GLuint depthMap; // Identificador de la textura de profundidad
+	glGenTextures(1, &depthMap); // Genera una textura y almacena su ID en depthMap
 
-    glBindTexture(GL_TEXTURE_2D, depthMap);
+	glBindTexture(GL_TEXTURE_2D, depthMap); // Vincula la textura de profundidad como una textura 2D activa
 
+	//glTexImage2D crea una textura 2D vacía con formato de profundidad (GL_DEPTH_COMPONENT) y 
+    // dimensiones SHADOW_WIDTH x SHADOW_HEIGHT.
     glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_DEPTH_COMPONENT,
+		GL_TEXTURE_2D, // Tipo de textura: 2D
+		0, // Nivel de detalle (0 = base)
+		GL_DEPTH_COMPONENT, // Formato de la textura: componente de profundidad
         SHADOW_WIDTH,
         SHADOW_HEIGHT,
-        0,
-        GL_DEPTH_COMPONENT,
-        GL_FLOAT,
-        nullptr
+		0, // Borde (debe ser 0)
+		GL_DEPTH_COMPONENT, // Formato de los datos de la textura: componente de profundidad
+		GL_FLOAT, // Tipo de dato de los datos de la textura: float
+        nullptr 
     );
 
     // Configuración de la textura
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -262,15 +271,16 @@ int main()
     // Asociar la textura al framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
 
-    glFramebufferTexture2D(
-        GL_FRAMEBUFFER,
-        GL_DEPTH_ATTACHMENT,
+	glFramebufferTexture2D( // Asocia la textura de profundidad al framebuffer
+		GL_FRAMEBUFFER, // Tipo de framebuffer
+		GL_DEPTH_ATTACHMENT, // Tipo de attachment: profundidad
         GL_TEXTURE_2D,
-        depthMap,
+		depthMap, // ID de la textura de profundidad
         0
     );
 
     // No necesitamos almacenar colores
+	//por que solo nos interesa la información de profundidad para generar sombras
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
@@ -280,8 +290,8 @@ int main()
         std::cout << "Error: Framebuffer de sombras incompleto." << std::endl;
     }
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0); // Desvincula el framebuffer, volviendo al framebuffer por defecto (ventana)
+	glBindTexture(GL_TEXTURE_2D, 0); // Desvincula la textura de profundidad, volviendo a la textura por defecto (0)
 
 
 
@@ -290,7 +300,7 @@ int main()
     // llaman a glDelete* en su destructor y eso solo es válido mientras el
     // contexto OpenGL siga vivo.
 
-    std::unique_ptr<Model> scene = std::make_unique<Model>(gltfModel);
+	std::unique_ptr<Model> scene = std::make_unique<Model>(gltfModel); // Crea un objeto Model a partir del modelo glTF cargado previamente
 
     // CREAR EL CASTILLO
     std::unique_ptr<Model> castle =
@@ -340,51 +350,52 @@ float flyingDragonTargetSize = 0.5f;
     // PUNTOS DE CONTROL DE LA CURVA DE BEZIER
     //------------------------------------------------------
 
-    glm::vec3 P0(-1.0f, 0.5f, -1.0f);
-    glm::vec3 P1(-0.5f, 2.0f, 0.0f);
-    glm::vec3 P2(1.0f, 2.0f, 1.0f);
-    glm::vec3 P3(2.0f, 0.5f, 0.0f);
+    glm::vec3 P0(-1.0f, 0.5f, -1.0f); // punto inicial de la curva
+	glm::vec3 P1(-0.5f, 2.0f, 0.0f); // punto de control 1
+	glm::vec3 P2(1.0f, 2.0f, 1.0f);// punto de control 2
+	glm::vec3 P3(2.0f, 0.5f, 0.0f);// punto final de la curva
 
     //------------------------------------------------------
     // ANIMACIÓN DEL DRAGÓN VOLADOR
     //------------------------------------------------------
 
-    float curveT = 0.0f;
-    float curveSpeed = 0.15f;
-    float curveDirection = 1.0f;
+	float curveT = 0.0f; //Inicializa el parámetro t de la curva de Bezier en 0.0, que representa el punto inicial de la curva.
+	float curveSpeed = 0.15f; //Velocidad a la que el dragón se mueve a lo largo de la curva de Bezier.
+	float curveDirection = 1.0f; //Dirección del movimiento a lo largo de la curva de Bezier. Un valor positivo (1.0) indica que el dragón se mueve hacia adelante a lo largo de la curva, 
+    //mientras que un valor negativo (-1.0) indica que se mueve hacia atrás.
 
-    Shader modelShader("model.vert", "model.frag");
-    Shader shadowShader("shadow.vert", "shadow.frag");
+	Shader modelShader("model.vert", "model.frag"); // Crea un objeto Shader para el shader de modelos, utilizando los archivos "model.vert" y "model.frag" como shaders de vértices y fragmentos, respectivamente.
+	Shader shadowShader("shadow.vert", "shadow.frag"); // Crea un objeto Shader para el shader de sombras, utilizando los archivos "shadow.vert" y "shadow.frag" como shaders de vértices y fragmentos, respectivamente.
 
 
     // VARIABLES DE UNIFORMES
-    GLint uMVP = glGetUniformLocation(modelShader.ID, "uMVP");
-    GLint uModel = glGetUniformLocation(modelShader.ID, "uModel");
+	GLint uMVP = glGetUniformLocation(modelShader.ID, "uMVP"); // Obtiene la ubicación del uniforme "uMVP" en el shader de modelos, que se utilizará para enviar la matriz de transformación completa (Modelo-Vista-Proyección) al shader.
+	GLint uModel = glGetUniformLocation(modelShader.ID, "uModel");// Obtiene la ubicación del uniforme "uModel" en el shader de modelos, que se utilizará para enviar la matriz de transformación del modelo al shader.
 
     // Uniformes para iluminación Phong
-    GLint uViewPos = glGetUniformLocation(modelShader.ID, "uViewPos");
-    GLint uShininess = glGetUniformLocation(modelShader.ID, "uShininess");
+	GLint uViewPos = glGetUniformLocation(modelShader.ID, "uViewPos"); // Obtiene la ubicación del uniforme "uViewPos" en el shader de modelos, que se utilizará para enviar la posición de la cámara al shader para cálculos de iluminación.
+	GLint uShininess = glGetUniformLocation(modelShader.ID, "uShininess"); // Obtiene la ubicación del uniforme "uShininess" en el shader de modelos, que se utilizará para enviar el valor de brillo especular al shader para cálculos de iluminación.
 
     // CÁMARA
     // Empieza dentro del escenario, a la altura de los ojos. Ajusta la posición
     // si quedas dentro de una pared o muy lejos.
 
-    Camera camera(800, 800, glm::vec3(0.0f, 1.5f, 3.0f));
+	Camera camera(800, 800, glm::vec3(0.0f, 1.5f, 3.0f)); // Crea un objeto Camera con una resolución de 800x800 píxeles y una posición inicial en el espacio 3D en (0.0, 1.5, 3.0), que representa la posición de la cámara en el mundo.
 
-    float lastFrame = 0.0f;
+	float lastFrame = 0.0f; // Variable para almacenar el tiempo del último frame renderizado, utilizada para calcular el tiempo transcurrido entre frames y ajustar la velocidad de animación de manera independiente a la tasa de frames por segundo (FPS).
 
 
     // MATRIZ DEL ESCENARIO (se calcula una sola vez)
     // 1. Se centra en X y Z con el piso (el punto más bajo) en y = 0.
     // 2. Se escala para que su lado más largo mida SCENE_TARGET_SIZE.
 
-    glm::vec3 size = scene->boundsMax - scene->boundsMin;
-    glm::vec3 center = (scene->boundsMin + scene->boundsMax) * 0.5f;
-    float maxSide = std::max(size.x, std::max(size.y, size.z));
+	glm::vec3 size = scene->boundsMax - scene->boundsMin; // Dimensiones del escenario
+	glm::vec3 center = (scene->boundsMin + scene->boundsMax) * 0.5f; // Centro geométrico del escenario
+	float maxSide = std::max(size.x, std::max(size.y, size.z)); // Lado más largo del escenario
 
-    glm::mat4 sceneModel = glm::mat4(1.0f);
-    sceneModel = glm::scale(sceneModel, glm::vec3(SCENE_TARGET_SIZE / maxSide));
-    sceneModel = glm::translate(sceneModel, glm::vec3(-center.x, -scene->boundsMin.y, -center.z));
+	glm::mat4 sceneModel = glm::mat4(1.0f); // Matriz de transformación del escenario, inicializada como la matriz identidad
+	sceneModel = glm::scale(sceneModel, glm::vec3(SCENE_TARGET_SIZE / maxSide)); // Escala el escenario para que su lado más largo mida SCENE_TARGET_SIZE, manteniendo la proporción de las dimensiones originales.
+	sceneModel = glm::translate(sceneModel, glm::vec3(-center.x, -scene->boundsMin.y, -center.z)); // Centra el escenario en X y Z, y coloca su punto más bajo en y = 0, ajustando la posición del escenario en el espacio 3D.
 
 
 
@@ -394,21 +405,21 @@ float flyingDragonTargetSize = 0.5f;
 
     // Obtener dimensiones del castillo
     glm::vec3 castleSize =
-        castle->boundsMax - castle->boundsMin;
+		castle->boundsMax - castle->boundsMin; // Dimensiones del castillo
 
     // Centro del castillo
     glm::vec3 castleCenter =
-        (castle->boundsMin + castle->boundsMax) * 0.5f;
+		(castle->boundsMin + castle->boundsMax) * 0.5f; // Centro geométrico del castillo
 
     // Lado más largo
     float castleMaxSide =
         std::max(
             castleSize.x,
-            std::max(castleSize.y, castleSize.z)
+			std::max(castleSize.y, castleSize.z) // Calcula el lado más largo del castillo comparando sus dimensiones en X, Y y Z
         );
 
     // Crear matriz de transformación
-    glm::mat4 castleModel(1.0f);
+	glm::mat4 castleModel(1.0f); // Inicializa la matriz de transformación del castillo como la matriz identidad
 
     castleModel = glm::translate(
         castleModel,
@@ -419,7 +430,7 @@ float flyingDragonTargetSize = 0.5f;
     // Rotación del castillo
     castleModel = glm::rotate(
         castleModel,
-        glm::radians(195.0f),
+		glm::radians(195.0f), // Convierte 195 grados a radianes para la rotación
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
 
@@ -532,7 +543,7 @@ float flyingDragonTargetSize = 0.5f;
     );
 
     moonModel = glm::translate(
-        moonModel,
+        moonModel, 
         -moonCenter
     );
    
@@ -602,11 +613,14 @@ float flyingDragonTargetSize = 0.5f;
         );
 
     // Proyección ortográfica de la luz
+	// Se ajusta para que abarque todo el escenario
+	//ortografica significa que los rayos de luz son paralelos, 
+    // lo que es útil para simular la luz del sol y generar sombras consistentes en toda la escena.
     glm::mat4 lightProjection =
         glm::ortho(
-            -8.0f, 8.0f,
-            -8.0f, 8.0f,
-            0.1f, 40.0f
+			-8.0f, 8.0f,// izquierda, derecha
+			-8.0f, 8.0f, // abajo, arriba
+			0.1f, 40.0f //Cerca, lejos
         );
 
     // Matriz final de iluminación
@@ -625,12 +639,12 @@ float flyingDragonTargetSize = 0.5f;
 
 
         //------------------------------------------------------
-// CURVA DE BEZIER PARA EL MOVIMIENTO DEL DRAGÓN
-//------------------------------------------------------
+        // CURVA DE BEZIER PARA EL MOVIMIENTO DEL DRAGÓN
+        //------------------------------------------------------
 
         curveT += curveSpeed * deltaTime * curveDirection;
 
-        if (curveT >= 1.0f)
+		if (curveT >= 1.0f) //curveT representa la posición del dragón a lo largo de la curva de Bezier,
         {
             curveT = 1.0f;
             curveDirection = -1.0f;
@@ -754,10 +768,10 @@ float flyingDragonTargetSize = 0.5f;
 
         // Generar sombras del castillo
         castle->DrawDepth(
-            shadowShader.ID,
-            castleGLTF,
-            lightSpaceMatrix,
-            castleModel
+			shadowShader.ID,// ID del shader de sombras
+			castleGLTF,// Modelo glTF del castillo
+			lightSpaceMatrix,// Matriz de transformación de la luz
+			castleModel// Matriz de transformación del castillo
         );
 
         // Generar sombras de los dragones
@@ -802,7 +816,7 @@ float flyingDragonTargetSize = 0.5f;
             glm::value_ptr(cubeLightMVP)
         );
 
-		// cube->Draw(); // Descomenta esta línea si quieres que el cubo genere sombras
+		// cube->Draw(); // 
 
         // Dibujar esfera en el mapa de profundidad
         glm::mat4 sphereLightMVP =
@@ -817,7 +831,8 @@ float flyingDragonTargetSize = 0.5f;
 
 		// sphere->Draw(); // Descomenta esta línea si quieres que la esfera genere sombras
 
-		//SEGUNDA PASADA: DIBUJAR ESCENA CON SOMBRAS
+		
+        //SEGUNDA PASADA: DIBUJAR ESCENA CON SOMBRAS
 
         // Volver al framebuffer principal
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

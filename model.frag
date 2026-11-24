@@ -140,7 +140,7 @@ void main()
     // -----------------------------------------------------------
     // COMPONENTE AMBIENTAL
     // -----------------------------------------------------------
-
+    // Definir el color ambiental
     vec3 ambientColor =
         vec3(0.34, 0.36, 0.40);
 
@@ -151,12 +151,15 @@ void main()
     // COMPONENTE DIFUSA
     // -----------------------------------------------------------
 
+    // Calcular el factor difuso utilizando el producto punto entre la normal y la dirección de la luz.
     float diffuseFactor =
         max(dot(normal, lightDir), 0.0);
 
+        // Definir el color de la luz
     vec3 lightColor =
         vec3(1.0, 0.98, 0.95);
 
+        // Calcular el componente difuso multiplicando el color base del material, el color de la luz y el factor difuso.
     vec3 diffuse =
         base.rgb * lightColor *
         diffuseFactor * 0.78;
@@ -164,10 +167,11 @@ void main()
     // -----------------------------------------------------------
     // COMPONENTE ESPECULAR
     // -----------------------------------------------------------
-
+    // Calcular la dirección reflejada de la luz utilizando la función reflect, que toma la dirección de la luz y la normal de la superficie.
     vec3 reflectDir =
         reflect(-lightDir, normal);
 
+        // Calcular el factor especular utilizando el producto punto entre la dirección hacia la cámara y la dirección reflejada, elevado a la potencia de uShininess.
     float specularFactor =
         pow(
             max(dot(viewDir, reflectDir), 0.0),

@@ -11,6 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Dirección de los datos de un accessor.
+
 static const unsigned char* GetAccessorData(
     const tinygltf::Model& model,
     const tinygltf::Accessor& accessor)
@@ -43,6 +44,8 @@ static const unsigned char* GetAccessorData(
 
 
 // Separación en bytes entre elementos consecutivos.
+//Stride significa la cantidad de bytes que hay que saltar para pasar de un elemento al siguiente en un array de datos.
+// En el contexto de los accesores glTF, el stride indica cuántos bytes hay entre cada elemento del accessor, lo que permite acceder correctamente a los datos almacenados en un buffer.
 static size_t GetStride(
     const tinygltf::Model& model,
     const tinygltf::Accessor& accessor)
@@ -73,6 +76,7 @@ static glm::vec3 ReadVec3(
 {
     glm::vec3 result;
 
+	//memcpy copia un bloque de memoria desde la dirección de origen (data + index * stride) a la dirección de destino (&result).
     std::memcpy(
         &result,
         data + index * stride,
@@ -277,8 +281,8 @@ Model::~Model()
 // ---------------------------------------------------------------
 // CARGAR MATERIALES Y TEXTURAS
 // ---------------------------------------------------------------
-
-void Model::LoadMaterials(
+//LoadMaterials carga los materiales y texturas del modelo glTF en el objeto Model.
+void Model::LoadMaterials( 
     const tinygltf::Model& gltfModel)
 {
 
@@ -512,7 +516,7 @@ void Model::LoadMesh(
 
                 continue;
             }
-
+			// Crear un vector de vértices con la cantidad de vértices obtenida del accessor de posiciones.
             std::vector<Vertex> vertices(vertexCount);
 
             // Extraer posiciones.
@@ -521,10 +525,10 @@ void Model::LoadMesh(
                 vertices[i].position =
                     ReadVec3(
                         positionData,
-                        positionStride,
+                        positionStride, 
                         i
                     );
-
+				// Inicializar normales y coordenadas UV a valores predeterminados
                 vertices[i].normal =
                     glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -583,7 +587,7 @@ void Model::LoadMesh(
 
             auto uvIt =
                 primitive.attributes.find("TEXCOORD_0");
-
+			//TEXTCOORD_0 es el nombre del atributo de vértice que contiene las coordenadas de textura UV en un modelo glTF.
             if (uvIt != primitive.attributes.end())
             {
                 const tinygltf::Accessor& uvAccessor =

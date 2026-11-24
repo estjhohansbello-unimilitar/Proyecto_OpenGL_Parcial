@@ -8,7 +8,7 @@
 #include <string>
 #include <algorithm>
 
-bool LoadGLTF(const std::string& path, tinygltf::Model& model)
+bool LoadGLTF(const std::string& path, tinygltf::Model& model) // Carga un archivo glTF (.gltf o .glb) en un modelo de tinygltf
 {
     tinygltf::TinyGLTF loader;
 
